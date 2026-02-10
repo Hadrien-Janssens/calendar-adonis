@@ -9,11 +9,14 @@
 
 import router from '@adonisjs/core/services/router'
 const GoogleCalendarController = () => import('#controllers/google_calendars_controller')
+const ServicesController = () => import('#controllers/services_controller')
+const AvailibilitySlotsController = () => import('#controllers/availibility_slots_controller')
 
-router.get('/', async () => {
-  return {
-    hello: 'world',
-  }
-})
+// GOOGLE EVENT ROUTE : I think don't need for a long time again
 router.post('events', [GoogleCalendarController, 'createEvent'])
 router.get('events', [GoogleCalendarController, 'listEvents'])
+
+// SERVICE ROUTE
+router.get('services', [ServicesController, 'index'])
+
+router.get('/slots', [AvailibilitySlotsController, 'availableSlot'])
