@@ -19,4 +19,4 @@ router.get('events', [GoogleCalendarController, 'listEvents'])
 // SERVICE ROUTE
 router.get('services', [ServicesController, 'index'])
 
-router.get('/availables-slots', [AvailibilitySlotsController, 'slotCountByDay'])
+router.get('/slots', [AvailibilitySlotsController, 'availableSlot'])

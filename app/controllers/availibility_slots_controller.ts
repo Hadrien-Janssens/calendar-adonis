@@ -1,23 +1,31 @@
 import { AvailabilitySlotService } from '#services/availability_slot_service'
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
+@inject()
 export default class AvailibilitySlotsController {
+  constructor(protected availabilitySlotService: AvailabilitySlotService) {}
   /**
-   * Give a count of availables slot by day for the giving month
+   * Give all availables slots by day for the giving month
    * @returns
    */
-  async slotCountByDay({ request }: HttpContext) {
+  async availableSlot({ request, response }: HttpContext) {
     const month = request.input('month')
     const serviceId = request.input('service_id')
-
-    return AvailabilitySlotService.getMonthAvailability(month, serviceId)
-  }
-
-  /**
-   * Give availables slots for giving day
-   * @returns
-   */
-  async availableSlot() {
-    return
+    const result = await this.availabilitySlotService.getMonthAvailability(month, serviceId)
+    if (!result.ok) {
+      if (result.error === 'INVALID_FORMAT') {
+        return response.badRequest({
+          message: 'Invalid month format. Expected yyyy-MM',
+        })
+      }
+      if (result.error === 'PAST_MONTH') {
+        return response.unprocessableEntity({
+          message: "Can't provide previous month.",
+        })
+      }
+    } else {
+      return result.data
+    }
   }
 }
