@@ -1,38 +1,60 @@
+import Booking from '#models/booking'
 import { inject } from '@adonisjs/core'
+import { StripeService } from './stripe_service.js'
+import SlotUnavailableException from '#exceptions/slot_unavailable_exception'
+import { BookingType, SlotType, StripeClientSecret } from '../types/booking.js'
+import Service from '#models/service'
 
 @inject()
 export class BookingService {
-  constructor(protected stripeService: StripService) {}
+  constructor(protected stripeService: StripeService) {}
 
-  private isSlotAvailable(slot): boolean {
-    //logique pour vérifier si le crénaux est diponible
-  }
-  private createBooking(isWithPayement): number | Error {
-    //    # créer la reservation en DB :
-    //    - statut : confirmed_unpaid || pending_payement
-    //    - email invité
-    //    - créneau
-    //    - prix calculé côté backend
-    //.   - expires_at : null || now()+15 min
-    //
-    //    return  l'id ex: 123
+  private async createBooking(bookingDTO: BookingType): Promise<Booking> {
+    const service = await Service.findOrFail(bookingDTO.serviceId)
+
+    const booking = await Booking.create({
+      status: bookingDTO.isWithPayement ? 'pending_payement' : 'confirmed_unpaid',
+      email: bookingDTO.email,
+      start_at: bookingDTO.slot.start,
+      end_at: bookingDTO.slot.end,
+      priceCents: service.priceCents,
+      // expires_at: new Date(Date.now() + 15 * 60 * 1000),
+      expires_at: null,
+    })
+
+    return booking
   }
 
-  // je peux peut etre faire du destructuring pour recuperer "validateDataRequest"
-  public booking(validateDataRequest) {
+  // TODO: faire une transaction au cas ou deux utilisateurs reserve à la même milliseconde.
+  private async isSlotAvailable(slot: SlotType): Promise<boolean> {
+    const existingSlot = await Booking.query()
+      .where('start_at', '<', slot.end.toJSDate())
+      .andWhere('end_at', '>', slot.start.toJSDate())
+      .first()
+
+    return !existingSlot
+  }
+
+  public async booking(bookingDTO: BookingType): Promise<Booking | StripeClientSecret> {
     // 1. vérifier si le slot est disponible
-    const isSlotAvailable = this.isSlotAvailable(validateDataRequest.slot)
-    // 2. si pas disponible return "slot pas disponible"
+    const isSlotAvailable = await this.isSlotAvailable(bookingDTO.slot)
+    // 2. si pas disponible
     if (!isSlotAvailable) {
-      return 'INVALID_SLOT'
+      throw new SlotUnavailableException()
     }
-    const bookingId = this.createBooking(validateDataRequest.isWithPayement)
+
+    const booking = await this.createBooking(bookingDTO)
+    // TODO: ajouter dans googlecalendar: dans le GoogleService (avoir si je dois le faire avant ou après le payement ?)
+
     // 3. vérifier si il faut faire un payement
-    if (validateDataRequest.isWithPayement) {
-      this.stripeService.payementIntent(bookingId)
+    if (bookingDTO.isWithPayement) {
+      this.stripeService.createIntent(booking)
       //    b. DANS UN STRIPEPAYEMENTSERVICE ?
       //    - faire le payementIntent
-      //    - return le ClientSecret
+      //    - return le {ClientSecret : sdfqsfsfsf}
+      return 'Configure later'
+    } else {
+      return booking
     }
   }
 }

@@ -22,4 +22,4 @@ router.get('services', [ServicesController, 'index'])
 
 router.get('/slots', [AvailibilitySlotsController, 'availableSlot'])
 
-router.post('/booking', [BookingsController, 'booking'])
+router.post('/booking', [BookingsController, 'store'])
