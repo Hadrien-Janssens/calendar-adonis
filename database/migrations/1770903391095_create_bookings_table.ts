@@ -13,7 +13,7 @@ export default class extends BaseSchema {
       table.dateTime('end_at').notNullable()
       table.integer('price_cents').notNullable()
       table.enum('status', BOOKING_STATUSES).notNullable().defaultTo('pending')
-      table.date('expires_at').nullable()
+      table.dateTime('expires_at').nullable()
 
       table.timestamp('created_at')
       table.timestamp('updated_at')

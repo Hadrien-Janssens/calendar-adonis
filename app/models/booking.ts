@@ -32,7 +32,7 @@ export default class Booking extends BaseModel {
   @column()
   declare status: BookingStatus
 
-  @column()
+  @column.dateTime()
   declare expires_at: DateTime | null
 
   @column.dateTime({ autoCreate: true })

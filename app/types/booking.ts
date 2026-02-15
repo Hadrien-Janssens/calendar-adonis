@@ -1,6 +1,10 @@
+import Booking from '#models/booking'
 import { DateTime } from 'luxon'
 
-export type StripeClientSecret = string
+export type BookingResult = {
+  booking: Booking
+  stripeClientSecret: string | null
+}
 
 export type SlotType = {
   start: DateTime
