@@ -13,6 +13,9 @@ export class GoogleCalendarService {
     },
   })
 
+  private calendarId =
+    '610364e5fc6cdc9d379217f5f168b5a5943e9b6d4e2039cae85fbd6ee3e22dba@group.calendar.google.com'
+
   private async getAccessToken(): Promise<string> {
     const tokenObject = this.client.createToken({
       refresh_token: process.env.GOOGLE_REFRESH_TOKEN!,
@@ -27,7 +30,7 @@ export class GoogleCalendarService {
     twoYearsLater.setFullYear(twoYearsLater.getFullYear() + 2)
     const timeMax = twoYearsLater.toISOString()
     const res = await axios.get(
-      'https://www.googleapis.com/calendar/v3/calendars/610364e5fc6cdc9d379217f5f168b5a5943e9b6d4e2039cae85fbd6ee3e22dba@group.calendar.google.com/events',
+      `https://www.googleapis.com/calendar/v3/calendars/${this.calendarId}/events`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
         params: {
@@ -48,7 +51,7 @@ export class GoogleCalendarService {
     const accessToken = await this.getAccessToken()
 
     const res = await axios.post(
-      'https://www.googleapis.com/calendar/v3/calendars/primary/events',
+      `https://www.googleapis.com/calendar/v3/calendars/${this.calendarId}/events`,
       {
         summary: title,
         start: { dateTime: start },

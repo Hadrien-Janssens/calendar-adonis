@@ -23,6 +23,6 @@ router.get('services', [ServicesController, 'index'])
 
 router.get('/slots', [AvailibilitySlotsController, 'availableSlot'])
 
-router.post('/booking', [BookingsController, 'store'])
+router.post('/api/bookings', [BookingsController, 'store'])
 
 router.post('/webhooks/stripe', [StripeWebhooksController, 'handleStripeWebhook'])

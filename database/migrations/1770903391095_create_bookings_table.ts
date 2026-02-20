@@ -14,6 +14,7 @@ export default class extends BaseSchema {
       table.integer('price_cents').notNullable()
       table.enum('status', BOOKING_STATUSES).notNullable().defaultTo('pending')
       table.dateTime('expires_at').nullable()
+      table.integer('service_id').unsigned().references('services.id').onDelete('CASCADE')
 
       table.timestamp('created_at')
       table.timestamp('updated_at')

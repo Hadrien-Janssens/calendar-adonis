@@ -20,6 +20,7 @@ export class BookingService {
       end_at: bookingDTO.slot.end,
       priceCents: service.priceCents,
       expires_at: bookingDTO.isWithPayement ? DateTime.now().toUTC().plus({ minutes: 15 }) : null,
+      serviceId: bookingDTO.serviceId,
     })
 
     return booking
@@ -35,6 +36,16 @@ export class BookingService {
     return !existingSlot
   }
 
+  public async getBookingsByMonth(date: DateTime) {
+    const startOfMonth = date.startOf('month')
+    const endOfMonth = date.endOf('month')
+    const bookings = await Booking.query()
+      .where('start_at', '>=', startOfMonth.toSQL()!)
+      .andWhere('end_at', '<=', endOfMonth.toSQL()!)
+
+    return bookings
+  }
+
   public async booking(bookingDTO: BookingType): Promise<BookingResult> {
     // Slot Checking
     const isSlotAvailable = await this.isSlotAvailable(bookingDTO.slot)
@@ -43,7 +54,7 @@ export class BookingService {
     }
     // CREATE BOOKING IN DATABASE
     const booking = await this.createBooking(bookingDTO)
-    // TODO: ajouter dans googlecalendar: dans le GoogleService (avoir si je dois le faire avant ou après le payement ?)
+    // TODO: ajouter dans googlecalendar: dans le GoogleService (a voir si je dois le faire avant ou après le payement ?)
 
     // CHECK PAYEMENT
     if (bookingDTO.isWithPayement) {

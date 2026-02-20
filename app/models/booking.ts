@@ -1,5 +1,7 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column } from '@adonisjs/lucid/orm'
+import { BaseModel, belongsTo, column } from '@adonisjs/lucid/orm'
+import Service from './service.js'
+import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 
 export const BOOKING_STATUSES = [
   'pending',
@@ -31,6 +33,12 @@ export default class Booking extends BaseModel {
 
   @column()
   declare status: BookingStatus
+
+  @column()
+  declare serviceId: number
+
+  @belongsTo(() => Service)
+  declare service: BelongsTo<typeof Service>
 
   @column.dateTime()
   declare expires_at: DateTime | null
