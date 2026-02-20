@@ -56,12 +56,14 @@
     "@adonisjs/core": "^6.18.0",
     "@adonisjs/cors": "^2.2.1",
     "@adonisjs/lucid": "^21.6.1",
+    "@adonisjs/mail": "^9.2.2",
     "@vinejs/vine": "^3.0.1",
     "axios": "^1.13.2",
     "luxon": "^3.7.2",
     "mysql2": "^3.16.0",
     "reflect-metadata": "^0.2.2",
-    "simple-oauth2": "^5.1.0"
+    "simple-oauth2": "^5.1.0",
+    "stripe": "^20.3.1"
   },
   "hotHook": {
     "boundaries": [

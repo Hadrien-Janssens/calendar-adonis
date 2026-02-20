@@ -10,20 +10,26 @@ export default class AvailibilitySlotsController {
    * @returns
    */
   async availableSlot({ request, response }: HttpContext) {
-    const month = request.input('month')
+    // TODO: faire un validator pour les inputs reçus ici
+    const date = request.input('date')
     const serviceId = request.input('service_id')
-    const result = await this.availabilitySlotService.getMonthAvailability(month, serviceId)
+    const result = await this.availabilitySlotService.getMonthAvailability(date, serviceId)
+
     if (!result.ok) {
       if (result.error === 'INVALID_FORMAT') {
         return response.badRequest({
           message: 'Invalid month format. Expected yyyy-MM',
         })
       }
+
       if (result.error === 'PAST_MONTH') {
         return response.unprocessableEntity({
           message: "Can't provide previous month.",
         })
       }
+      return response.json({
+        message: "Error doesn't catch : no details",
+      })
     } else {
       return result.data
     }

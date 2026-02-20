@@ -3,6 +3,7 @@ import Service from '#models/service'
 import { inject } from '@adonisjs/core'
 import { GoogleCalendarService } from './google_calendar_service.js'
 import { DateTime, Interval } from 'luxon'
+import { BookingService } from './booking_service.js'
 
 type Data = {
   date: string
@@ -18,27 +19,25 @@ type MonthAvailabilityResult =
 
 @inject()
 export class AvailabilitySlotService {
-  constructor(protected googleService: GoogleCalendarService) {}
+  constructor(
+    protected googleService: GoogleCalendarService,
+    protected bookingService: BookingService
+  ) {}
 
   public async getMonthAvailability(
-    month: string,
+    date: string,
     serviceId: number
   ): Promise<MonthAvailabilityResult> {
-    const ZONE = 'Europe/Brussels' // On fixe la zone pour tout le calcul
+    const ZONE = 'Europe/Brussels'
     const service = await Service.findOrFail(serviceId)
     const serviceDuration = service.durationMinutes
     const openingHours = await OpeningHour.all()
     const events = await this.googleService.listEvents()
 
-    // 3. récupérer les events Google TODO: recupérer que ceux du mois ;)
-    //     const events = await this.googleService.listEvents()
-    // 4. calculer les slots disponible par jour pour tout le mois donné- utiliser luxon
+    // TODO: recupérer les events Google que ceux du mois ;)
     // TODO: vérifier que le mois est correct, mais pas le vérifier dans le service, le verifier dans le controleur via un validateur par exemple
 
-    // 1. Parser le mois en forçant la zone
-    // Si month = "2026-01", Luxon risque d'être "Invalid", assure-toi de recevoir "2026-01-01"
-
-    const currentDate = DateTime.fromISO(month, { zone: ZONE })
+    const currentDate = DateTime.fromISO(date, { zone: ZONE })
     const monthStart = currentDate.startOf('month')
     if (!monthStart.isValid) {
       return { ok: false, error: 'INVALID_FORMAT' }
@@ -53,7 +52,7 @@ export class AvailabilitySlotService {
       currentDate.month === DateTime.now().month && currentDate.year === DateTime.now().year
     let today = 0
     if (isTheCurrentMonth) {
-      today = DateTime.now().day - 1 // -1 because 1-31
+      today = DateTime.now().day - 1
     }
 
     const daysInMonth = monthStart.daysInMonth
@@ -81,9 +80,9 @@ export class AvailabilitySlotService {
 
       const dayInterval = Interval.fromDateTimes(dayStart, dayEnd)
 
-      // 3. Filtrer et convertir les événements
-      const busyIntervals = events
-        .filter((e) => e.transparency !== 'transparent') // On ignore les événements "disponibles"
+      // 3. Filtrer et convertir les événements Google
+      const busyGoogleIntervals = events
+        .filter((e) => e.transparency !== 'transparent')
         .map((e) => {
           if (e.start.dateTime) {
             return Interval.fromDateTimes(
@@ -91,14 +90,21 @@ export class AvailabilitySlotService {
               DateTime.fromISO(e.end.dateTime, { setZone: true })
             )
           } else {
-            // Événement all-day : Google donne le lendemain comme date de fin (exclusive)
+            // Événement all-day :
             return Interval.fromDateTimes(
               DateTime.fromISO(e.start.date, { zone: ZONE }).startOf('day'),
               DateTime.fromISO(e.end.date, { zone: ZONE }).startOf('day')
             )
           }
         })
-        .filter((int) => int.overlaps(dayInterval))
+        .filter((int: Interval) => int.overlaps(dayInterval))
+
+      const monthBookings = await this.bookingService.getBookingsByMonth(currentDate)
+      const busyBookingInterval = monthBookings.map((booking) =>
+        Interval.fromDateTimes(booking.start_at, booking.end_at)
+      )
+
+      const allBusyIntervals = [...busyBookingInterval, ...busyGoogleIntervals]
 
       // 4. Génération des slots
       const availableSlots = []
@@ -106,21 +112,15 @@ export class AvailabilitySlotService {
 
       while (cursor.plus({ minutes: serviceDuration }) <= dayEnd) {
         const slotInterval = Interval.after(cursor, { minutes: serviceDuration })
-        const blockingEvent = busyIntervals.find((busy) => busy.overlaps(slotInterval))
+        const blockingEvent = allBusyIntervals.find((busy: Interval) => busy.overlaps(slotInterval))
 
         if (!blockingEvent) {
           availableSlots.push({
             start: cursor.toISO(),
             end: cursor.plus({ minutes: serviceDuration }).toISO(),
           })
-          // cursor = cursor.plus({ minutes: serviceDuration })
         }
         cursor = cursor.plus({ minutes: serviceDuration })
-
-        //  else {
-        //   // On saute à la fin de l'événement bloquant
-        //   cursor = blockingEvent.end
-        // }
       }
 
       results.push({
